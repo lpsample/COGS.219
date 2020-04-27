@@ -1,0 +1,5 @@
+"0"," participant.response.pong <- data %>%"
+"0"," filter(humanScore!=""NULL"",aiScore!= ""NULL"", trial_type==""pong"") %>% "
+"0","   mutate(difference.score = as.numeric(humanScore)-as.numeric(aiScore))%>%"
+"0","  mutate(humanPaddleSize = as.numeric(humanPaddleSize))"
+"0"," "

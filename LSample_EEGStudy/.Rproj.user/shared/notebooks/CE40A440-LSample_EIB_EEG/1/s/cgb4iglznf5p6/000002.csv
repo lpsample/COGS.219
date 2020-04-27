@@ -1,0 +1,2 @@
+"0","anova.result <- ezANOVA(trials, dv = correct_num, within=c(distractor_type, target_lag), wid=participant_id)"
+"0","anova.result$ANOVA"

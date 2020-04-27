@@ -1,0 +1,5 @@
+"0",""
+"0","ggplot(OLR, aes(x=speed, y=guess))+"
+"0","  geom_bin2d()+"
+"0","    labs(title = ""Guess by Absolute Speed"",x=""Speed"", y = ""Guess"", color = ""Frequency"")+"
+"0","  scale_color_discrete(labels= c(""Target Faster"", ""Same Speed"", ""Target Slower""))"

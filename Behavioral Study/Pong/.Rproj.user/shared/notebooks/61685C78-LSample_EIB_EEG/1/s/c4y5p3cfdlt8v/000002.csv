@@ -1,0 +1,11 @@
+"0","#ANOVA"
+"0","#t= 400-550"
+"0","distractorP3b.anova <- p3b.distractor.difference.waves %>%"
+"0"," filter(t >= 400 & t<=550) %>%"
+"0","  group_by(distractor.condition, subject) %>%"
+"0","  summarise(m.volt= mean(difference.wave))"
+"0",""
+"0",""
+"0","ezANOVA(distractorP3b.anova, dv= m.volt, wid= subject, within = c(distractor.condition))"
+"1","$ANOVA
+"

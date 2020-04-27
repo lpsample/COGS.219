@@ -1,0 +1,698 @@
+---
+title: "Kennedy et al. (2014) Replication Study, by Lindsey Sample"
+output: html_notebook
+---
+
+```{r Packahe Declarations, echo=FALSE, message=FALSE, warning=FALSE}
+library(readr)
+library(dplyr)
+library(ggplot2)
+library(ez)
+library(tidyr)
+
+```
+#Introduction
+We are interested in replicating Kennedy, Rawding, Most, & Hoffman (2014), “Emotion-induced blindness reflects competition at early and late processing stages: An ERP study.” Emotionally induced blindness (EIB) is a phenomena that claims emotionally arousing stimuli can impair visual awareness of items presented a short time later (Kennedy et al., 2014). The common method of studying EIB is to have participants search for a target photo embedded in a set of photos that appear in rapid succession. Before the target photo, either right before or an extended period of time before, a distracting image is shown that is irrelevant to the task but intended to have emotional valence. In Kennedy et al. (2014), we see participants fail to correctly complete the target image task (identifying to which direction the image is rotated) when an emotionally arousing distractor is shown right before the target.  
+	There are several theories as to why this is the case. One of which is that participants fail to attend to the target image because their attention has just been grabbed by the distractor. Another explanation is that consolidation of the distractor into working memory precludes consolidation of the target image, but the target image is fully processed at perceptual and semantic levels (Kennedy et al., 2014).  
+	In attempt to study this, Kennedy et al. (2014) employ the use of event-related brain potential (ERP). ERP uses electrodes to measure voltage detected from the surface of the head as a result of aggregate neuronal action potentials firing. According to previous work, there are two components (electrode regions) of interest in studying EIB. The first of which is the P3b component, which is thought to reflect consolidation into working memory, and the second of which is referred to as the N2 component, which is thought to reflect attention selection. In attentional blink (AB) studies, which are similar to EIB studies, but focus on the event of viewing two targets in rapid succession with no emotionally arousing distractor, a “trade-off” effect can be witnessed between the amplitudes of voltage recodings picked up by the electrodes in the P3b region, where the peak of the first target exceeds the peak of the second. The proposed theory that explains this phenomena is that there is a limited capacity; there is a bottleneck effect that results in less neuronal action in attempt to consolidate the second target into working memory after viewing a first target. The N2 component is thought to have a similar effect in that there is larger peak with the initial target than the secondary target. Kennedy et al. (2014) attempt to translate AB work into the realm of EIB, where they predict that following a negative, emotionally arousing distractor image that appears right before a rotated target image, an amplified N2 and P3b will be exhibited compared to a neutral distractor or baseline, distractor-less condition, and that when the negative distractor condition holds, participants will have difficulty correctly identifying the rotated target image, along with lower P3b and N2 amplitudes during the target viewing to reflect difficulty attending to and consolidating the (second image) target image.
+	In the present study, we attempt to replicate Kennedy et al. (2014) in order to add further to the current data on EIB, and either support or call into question their findings. 
+	
+#Methods
+  *Materials and procedure.* We attempted to replicate Kennedy et al. (2014) as accurately as possible, yet with a new set of stimuli (intended to be comparable to theirs). We followed a repeated measures/ within-subjects design where all participants participated in all conditions. Participants were informed of the nature of the study and asked to sign a consent form, acknowledging their understanding of the EEG cap and arousing images. Each participant was sized for an EEG cap which was prepared in a solution of salt and baby-shampoo. Participants then were brought into the testing room, where they participated in the experimental task. The task involved viewing images on a computer screen (using a chin rest) and clicking using an external mouse. The task was to identify an image within a set of 17, each of which was presented for 100ms. Participants were asked to refrain from blinking during the presentation of the images. Within each sequence was one image that was rotated 90 degrees to the left or right. Following the sequence, participants were asked which way the image was rotated (left or right), and to rate their confidence on a 3 point scale (very sure, somewhat sure or guess). Each participant completed 5 blocks, each of which included 130 trials. Each block included 10 null trials (no distractor or target image), and 20 trials of each of the 6 conditions (lag condition: lag 2 or lag 8; distractor type: baseline/ no distractor, neutral distractor, negative distractor). Lag condition referred to the lag between the distractor and the target image, either 200ms (lag 2) or 800ms (lag 8). Distractor type referred to the distractor image which was either not present or similar to the regular images of landscapes or buildings (baseline), present and neutral (ex. a face), or negative (ex. medical trauma, growling animal).  
+	*Inclusion/ Exclusion Criteria and Participant Recruitment.* Participants has to be at least 18 years old and be willing to wear an EEG cap. We recruited from human subjects at Vassar College by word of mouth and email announcements. There was no monetary compensation. We ran 44 participants. Our exclusion criteria excluded all participants who did not have at least 80% of segments under a noise threshold that deemed a “good” segment.  
+	*Registration Information.* The OSF preregistration of this study can be found here: <https://osf.io/vawun/>. Experimental scripts, data and analysis files can be found here: <https://osf.io/etvs6/>
+
+#Results
+###Subject exclusions
+We collected data for 44 subjects. We conducted a noise analysis, similar to Kennedy et al. (2014), that excluded subjects that had less than 80% of segments (600 segments/ trials, 100 per condition) that were considered “good,” or not excessively noisy. This left us with 22 subjects.   
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+subject.segment.log <- read_csv('data/eeg-segment-count.csv')
+good.subjects <- subject.segment.log %>%
+  filter(P >= 0.8) %>%
+  pull(Subject)
+```
+### Behavioral results
+Our behavioral results indicated that distractor (neutral/ negative) had no effect on task accuracy in the lag 8 condition, F(1,21) = 129.87, p<.001, and that there was no difference in accuracy for baseline, but impared task accuracy in the neutral and especially the negative condition F(2,42) = 100.42, p<.001.  
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+#import behavioral data
+behavioral.data<- read_csv('data/behavioral-data-tidy.csv', progress = FALSE) %>%
+filter(participant_id %in% good.subjects)
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+#filter target lag moments in the test phase
+trials <- behavioral.data %>% filter(target_lag %in% c(2, 8), phase == "test", correct != "null")
+
+#create numerical values for t/f
+trials <- trials %>%
+  mutate(correct_num =
+          (if_else(correct , 1, 0))) %>%
+  mutate(target_lag=factor(target_lag))
+ 
+         
+#find mean and SD for each participant
+sum_trials<- trials %>%
+  group_by(participant_id, distractor_type, target_lag) %>%
+summarize(M= mean(correct_num), SD= sd(correct_num))
+
+#find standard error, across participants
+sum_trials_grouped <- sum_trials %>%
+  group_by(target_lag, distractor_type) %>%
+summarize(M2= mean(M)*100, SE=sd(M*100)/sqrt(n()))
+
+#plot data (percent correct and lag)
+ggplot(sum_trials_grouped, aes(x=target_lag, y=M2, color=distractor_type, group=distractor_type)) +
+  geom_line() +
+  geom_errorbar(aes(ymin=M2-SE, ymax=M2+SE), width=0.25)+
+  labs(title= "Accuracy of Target Image ID across Distractor Conditions", x="Lag", y = "Percent Accuracy", color = "Distractor Type")+
+  scale_color_discrete(labels= c("Baseline", "Negative", "Neutral"))+
+  theme_bw()
+
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+anova.result <- ezANOVA(trials, dv = correct_num, within=c(distractor_type, target_lag), wid=participant_id)
+anova.result$ANOVA
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+#Importing EEG data
+eeg.data<- read_csv('data/eeg-data-tidy.csv', progress = FALSE)%>%
+  filter(subject %in% good.subjects)
+
+```
+
+###N2 Component
+
+
+####N2 Distractor
+This analysis attempts to point to an attentional selection of the distractor image, where we would expect to see higher peaks in the attention grabbing negative images than the neutral images and baseline condition. Our time window was 185-275ms after distractor onset.
+We found no significant difference in a 2 factor ANOVA of N2 peak amplitude between negative and neutral conditions F(1,21)= 1.27, p=.27. There was also no effect of hemisphere, F= (1, 21) = 3.00, p = .09 or hemisphere x distractor condition interaction F(1,21)=.84, p=.27. In a paired sample t-test to analyze the difference between negative and neutral conditions in the N2 component amplitude in response to the distractor, we found no significant differnce t(21)= -1.161, p=.12.
+Using one sample t-tests to compare each condition to the baseline, we found a significant difference between neutral and baseline conditions t(21)= -2.03, p=.02, and negative and baseline conditions t(21)= -2.85, p = .004. 
+
+#####N2 Distractor Visualization
+
+Lag 8 baseline condition was subtracted from negative and neutral conditions in the lag 8 condition to isolate the effect of seeing a distractor image in the N2 component region, reflected by electrodes 64, 68 and 69 in the left hemisphere and 89, 94 and 95 in the right hemisphere. Time: 185-275ms after distractor onset.
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+#get electrodes we care about, 
+lag8.n2 <- eeg.data %>%
+  filter(electrode %in% c(64, 68, 69, 89, 94, 95)) %>%
+  mutate(hemisphere=if_else (electrode %in% c(89, 94, 95), "right", "left"))%>%
+  filter(lag.condition == "Lag8") %>%
+  group_by(subject, hemisphere, t, distractor.condition) %>%
+  summarize(M.voltage = mean(voltage)) 
+#create baseline only file
+lag8.n2.baseline <- lag8.n2 %>%
+  filter(distractor.condition == "Baseline") %>%
+  mutate(baseline.voltage = M.voltage) %>%
+  select(subject, t, hemisphere, baseline.voltage)
+#add in baseline col, find difference, dump cols we dont need
+lag8.n2.difference <- lag8.n2 %>%
+  inner_join(lag8.n2.baseline) %>%
+  mutate(difference.wave = M.voltage - baseline.voltage) %>%
+  select(subject, hemisphere, t, distractor.condition, difference.wave)
+
+#ggplot info
+lag8.n2.difference.summary <- lag8.n2.difference %>%
+  group_by(t, distractor.condition) %>%
+  summarize(M = mean(difference.wave), SE = sd(difference.wave) / sqrt(n()))
+
+ggplot(lag8.n2.difference.summary, aes(x=t, y=M, ymin=M-SE, ymax=M+SE))+
+  geom_ribbon(aes(fill=distractor.condition), alpha=0.3)+
+  geom_line(aes(color=distractor.condition), size=1)+
+  annotate("rect", fill="yellow", alpha=0.1, xmin=185, xmax = 275,ymin = -2, ymax=2) +
+   labs(title = "Distractor Response (N2)", x="Time (ms)", y = "Amplitude (µV)", color = "Distractor Type")+
+  annotate("text", x = -40, y = 1, label = "Distractor Onset", angle = 90)+
+  annotate("text", x = 225, y = -2, label = "Distractor N2")+
+  geom_vline(xintercept = 0) +
+  scale_fill_discrete(guide=FALSE)+
+  scale_y_reverse()+
+  theme_bw()
+
+
+
+```
+#####N2 Distractor 2-Factor ANOVA
+
+Two factor ANOVA (hemisphere left, right x distractor type: negative and neutral on peak negativity of N2 at lag 8 on distractor) 185-275ms after distractor.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+#anova
+#get time we care about, get rid of baseline
+lag8.n2.anova <- lag8.n2.difference %>%
+ filter(t >= 185 & t<=275) %>%
+  filter(distractor.condition != "Baseline") %>%
+  group_by(hemisphere, distractor.condition, subject) %>%
+  summarise(min.volt= min(difference.wave))
+
+ezANOVA(lag8.n2.anova, dv= min.volt, wid= subject, within = c(hemisphere, distractor.condition))
+```
+#####N2 Distractor t-tests
+
+Paired t-test comparing peak amplitude of N2 distractor between neutral and negative conditions.
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+#t-tests
+#get rid of hemisphere, summarise to fix discrepancy, take min
+lag8.n2.ttest <- lag8.n2.anova %>%
+  group_by(distractor.condition, subject) %>%
+  summarise(min.volt= min(min.volt))
+
+#Paired t-test
+t.test(min.volt ~ distractor.condition, data=lag8.n2.ttest, alternative="less", paired=TRUE)
+```
+
+Single sample t-test on peak amplitude of N2 distractor to compare negative condition to baseline condition (0)
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+#negative
+t.test((lag8.n2.ttest %>% 
+filter(distractor.condition %in% c("Negative")))$min.volt, mu=0, alternative = "less")
+```
+Single sample t-test on peak amplitude of N2 distractor to compare neutral condition to baseline condition (0).
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+#neutral
+t.test((lag8.n2.ttest %>% 
+filter(distractor.condition %in% c("Neutral")))$min.volt, mu=0, alternative = "less")
+```
+####N2 Target
+This analysis attempts to point to attentional selection of the target image, where we would expect the baseline condition (no previous distraction) to yield the largest peak, followed by the neutral and negative distractor conditions. Our time window was 405-585ms after distractor onset.  
+We ran a 2-factor ANOVA and found no effect of hemisphere on target amplitude in the N2 component F(1,21)= .02, p =.88, or in the hemisphere x distractor condition interaction F(2,42)=.07, p=.92, but did find a significant effect of distractor condition F(2,42)=6.62, p=.003.  
+We ran a post-hoc, paired, one-tailed t-test to see if the negative condition was significantly less than the  baseline condition, in other words, whether or not the negative image elicited a smaller N2 attentional selection effect on the target image than the baseline, distractor-less condition. We did find the negative N2 target condition to be significantly less than the baseline condition t(21)= -3.59, p = .0008.  
+We then ran the same analysis with the neutral condition and found the neutral condition to be significantly less than the baseline condition t(21)= -3.76, p=.0005.  
+We then ran the same analysis to compare the negative and neutral conditions and found that the neutral condition was not significantly less than the negative condition, again, with respect to amplitude of the N2 component in response to the target image t(21) = .76, p=.22.
+
+#####N2 Target Visualization
+
+We subtracted the Lag 8 from the Lag 2 of each condition in order to isolate the effect of seeing the target image (no target image is shown 200ms after the distractor in the Lag 8 condition). We used the same electordes mentioned in the N2 distractor analysis for the N2 component.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+#get electrodes we care about, 
+lag2.n2 <- eeg.data %>%
+  filter(electrode %in% c(64, 68, 69, 89, 94, 95)) %>%
+  mutate(hemisphere=if_else (electrode %in% c(89, 94, 95), "right", "left"))%>%
+  group_by(subject, lag.condition, hemisphere, t, distractor.condition) %>%
+  summarize(M.voltage = mean(voltage)) %>%
+  ungroup()
+
+#create lag8 only file
+lag2.n2.lag8 <- lag2.n2 %>%
+  filter(lag.condition == "Lag8") %>%
+  mutate(lag8.voltage = M.voltage) %>%
+  select(subject, t, hemisphere, lag8.voltage, distractor.condition)
+#create lag2 only file
+lag2.n2.lag2 <- lag2.n2 %>%
+  filter(lag.condition == "Lag2") %>%
+  mutate(lag2.voltage = M.voltage) %>%
+  select(subject, t, hemisphere, lag2.voltage, distractor.condition)
+
+#join and do difference
+lag2.n2.difference <- lag2.n2.lag2 %>%
+  inner_join(lag2.n2.lag8) %>%
+  mutate(difference.wave = lag2.voltage - lag8.voltage) %>%
+  select(subject, hemisphere, t, distractor.condition, difference.wave)
+
+#ggplot info
+lag2.n2.difference.summary <- lag2.n2.difference %>%
+  group_by(t, distractor.condition) %>%
+  summarize(M = mean(difference.wave), SE = sd(difference.wave) / sqrt(n()))
+
+ggplot(lag2.n2.difference.summary, aes(x=t, y=M, ymin=M-SE, ymax=M+SE))+
+  geom_ribbon(aes(fill=distractor.condition), alpha=0.3)+
+  geom_line(aes(color=distractor.condition), size=1)+
+  annotate("rect", fill="yellow", alpha=0.1, xmin=405, xmax = 585,ymin = -3, ymax=3) +
+  labs(title = "Target Response (N2)",x="Time (ms)", y = "Amplitude (µV)", color = "Distractor Type", "rect" = "Lag-2 Target N2")+
+  geom_vline(xintercept = 0) +
+  geom_vline(xintercept = 200) +
+  annotate("text", x = -35, y = -2, label = "Distractor Onset",angle = 90)+
+  annotate("text", x = 160, y = 2.5, label = "Lag2 Target Onset", angle = 90)+
+  annotate("text", x = 500, y = 1.25, label = "Lag2 Target N2", angle = 90)+
+  scale_y_reverse()+
+  scale_fill_discrete(guide=FALSE)+
+  theme_bw()
+```
+#####N2 Target 2-Factor ANOVA
+
+Two factor ANOVA (hemisphere: left, right x distractor type: neg, neutral, baseline), mean negativity of N2 of lag 2 elicited by target pictures
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+#anova
+# t >= 405 & t<=585
+lag2.n2.anova <- lag2.n2.difference %>%
+ filter(t >= 405 & t<=585) %>%
+  group_by(hemisphere, distractor.condition, subject) %>%
+  summarise(M.volt= mean(difference.wave))
+
+
+ezANOVA(lag2.n2.anova, dv= M.volt, wid= subject, within = c(hemisphere, distractor.condition))
+
+```
+#####N2 Target t-tests
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+n2.target.t.test.data <- lag2.n2.anova %>%
+  group_by(subject, distractor.condition) %>%
+  summarize(M=mean(M.volt))
+```
+Paired sample t-test comparing baseline and negative conditions for the N2 component response to the target image.
+```{r message=FALSE, warning=FALSE, paged.print=FALSE}
+#baseline v. negative
+t.test(M ~ distractor.condition,
+       data = (n2.target.t.test.data %>% filter(distractor.condition != "Neutral")),
+       paired = TRUE,
+       alternative="less")
+```
+Paired sample t-test comparing baseline and neutral conditions for the N2 component response to the target image.
+```{r message=FALSE, warning=FALSE, paged.print=FALSE}
+#baseline v. neutral
+t.test(M ~ distractor.condition,
+       data = (n2.target.t.test.data %>% filter(distractor.condition != "Negative")),
+       paired = TRUE,
+       alternative="less")
+```
+Paired sample t-test comparing neutral and negative conditions for the N2 component response to the target image.
+```{r message=FALSE, warning=FALSE, paged.print=FALSE}
+#negative v. neutral
+t.test(M ~ distractor.condition,
+       data = (n2.target.t.test.data %>% filter(distractor.condition != "Baseline")),
+       paired = TRUE,
+       alternative="greater")
+
+```
+###P3b Component
+
+####Target P3b
+This analysis attempts to point to consolidation into working memory of the target image, where we would expect a smaller peak in the negative condition, followed by the neutral condition (compared to the baseline condition). Our time window was 635-995ms after distractor onset.  
+
+We ran a one-factor ANOVA to compare voltage across distractor conditions for the event of a target image within the P3b component. We report a significan effect of distractor conditon, F(2,42)= 4.80, p=.013.  
+
+We ran post-hoc paired, one-tailed t-tests to further analyze the relationship between conditions. We found a significant difference between the baseline and neutral conditions in that baseline P3b amplitude exceeded neutral P3b amplitude, t(21)= 2.57, p=.008. We then analyzed whether the baseline condition exceeded the negative conditon and found a significant effect here as well, t(21)= 2.57, p=.008. We then tested whether or not the neutral conditon exceeded the negative conditon in P3b targer effect and found no significant difference here, t(21)= .81, p=.78.  
+
+#####Target P3b Visualization
+In this visualization we subtracted Lag 8 from each of the Lag 2 conditions to isolate the target image. We examined electrodes 54, 55, 79, 78, 61 and 62 for the P3b component.
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+targetP3b <- eeg.data %>%
+  filter(electrode %in% c(54, 55, 79, 78, 61, 62)) %>%
+  group_by(subject, lag.condition, t, distractor.condition) %>%
+  summarize(M.voltage = mean(voltage)) %>%
+  ungroup()
+
+#create lag8 only file
+targetP3b.lag8 <- targetP3b %>%
+  filter(lag.condition == "Lag8") %>%
+  mutate(lag8.voltage = M.voltage) %>%
+  select(subject, t, lag8.voltage, distractor.condition)
+#create lag2 only file
+targetP3b.lag2 <- targetP3b %>%
+  filter(lag.condition == "Lag2") %>%
+  mutate(lag2.voltage = M.voltage) %>%
+  select(subject, t, lag2.voltage, distractor.condition)
+
+#join and do difference
+targetP3b.difference <- targetP3b.lag2 %>%
+  inner_join(targetP3b.lag8) %>%
+  mutate(difference.wave = lag2.voltage - lag8.voltage) %>%
+  select(subject, t, distractor.condition, difference.wave)
+
+#ggplot info
+targetP3b.difference.summary <- targetP3b.difference %>%
+  group_by(t, distractor.condition) %>%
+  summarize(M = mean(difference.wave), SE = sd(difference.wave) / sqrt(n()))
+
+ggplot(targetP3b.difference.summary, aes(x=t, y=M, ymin=M-SE, ymax=M+SE))+
+  geom_ribbon(aes(fill=distractor.condition), alpha=0.3)+
+  geom_line(aes(color=distractor.condition), size=1)+
+  annotate("rect", fill="yellow", alpha=0.1, xmin=635, xmax = 995,ymin = -3, ymax=3) +
+  labs(title= "Target Response (P3b)", x="Time (ms)", y = "Amplitude (µV)", color = "Distractor Type")+
+  geom_vline(xintercept = 0) +
+  geom_vline(xintercept = 200) + 
+   annotate("text", x = -35, y = 1, label = "Distractor Onset",angle = 90)+
+  annotate("text", x = 160, y = 1, label = "Lag2 Target Onset", angle = 90)+
+  annotate("text", x = 750, y = -2.5, label = "Lag2 Target P3b")+
+  scale_y_reverse()+
+  scale_fill_discrete(guide=FALSE)+
+  theme_bw()
+```
+
+#####Target P3b ANOVA
+A one-way repeated measures ANOVA (distractor type: negative, neutral, baseline: lag 2) on the average amplitude between 435 to 795 ms after the target onset at lag 2 will be conducted to determine the main effect of distractor types on the target in the P3b component.  
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+#ANOVA
+# t >= 635-995ms
+targetP3b.anova <- targetP3b.difference %>%
+ filter(t >= 635 & t<=995) %>%
+  group_by(distractor.condition, subject) %>%
+  summarise(m.volt= mean(difference.wave))
+
+
+ezANOVA(targetP3b.anova, dv= m.volt, wid= subject, within = c( distractor.condition))
+
+```
+#####Target P3b t-tests
+One tailed, paired t-test comparing baseline > neutral conditions for the P3b component response to the target image.
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+#One tailed, paired t-tests
+
+#baseline > neutral?
+t.test(m.volt ~ distractor.condition,
+       data = (targetP3b.anova %>% filter(distractor.condition != "Negative")),
+       paired = TRUE,
+       alternative="greater")
+```
+One tailed, paired t-test comparing baseline > negative conditions for the P3b component response to the target image.
+```{r}
+#baseline > negative?
+t.test(m.volt ~ distractor.condition,
+       data = (targetP3b.anova %>% filter(distractor.condition != "Neutral")),
+       paired = TRUE,
+       alternative="greater")
+```
+One tailed, paired t-test comparing neutral > negative conditions for the P3b component response to the target image.
+```{r message=FALSE, warning=FALSE, paged.print=FALSE}
+#neutral > negative?
+t.test(m.volt ~ distractor.condition,
+       data = (targetP3b.anova %>% filter(distractor.condition != "Baseline")),
+       paired = TRUE,
+       alternative="less")
+
+```
+
+
+####Distractor P3b
+
+This analysis attempts to point to consolidation into working memory of the distractor image, where we would expect the negative condition to yield the largest peak as it is more memorable, followed by the neutral condition. Baseline target was included in this analysis in Kennedy et al., so we followed suit. Our time window was 400-550ms after distractor onset. Baseline lag 8 was subtracted from negative and neutral lag 8, as well as baseline lag 2 (which included the P3b baseline target effect in this analysis). 
+We conducted a one-way within subjects ANOVA to compare mean voltage across distractor conditions and found a significant effect, F(2, 42)= 3.45, p<.001.
+We conducted several post-hoc one-tailed paired t-tests to parse the effect between conditons. We found that the baseline condition was not significantly less than the neutral condition with respect to mean amplitude, t(21)= 2.466, p=.988. Baseline was not significantly less than the negative condition, t(21)=.18, p=.572, but the neutral condition was significantly less than the negative conditon t(21)=3.29, p=.0017.  
+
+#####Distractor P3b Visualization
+In this visualization our time window was 400-550ms after distractor onset. Baseline lag 8 was subtracted from negative and neutral lag 8, as well as baseline lag 2 (which included the P3b baseline target effect). 
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+p3b.distractor.data <- eeg.data %>%
+  filter(electrode %in% c(54,55,79,78,61,62)) %>%
+  filter(lag.condition == "Lag8") %>%
+  select(-lag.condition)
+p3b.distractor.baseline <- p3b.distractor.data %>%
+  filter(distractor.condition == "Baseline") %>%
+  mutate(baseline.voltage = voltage) %>%
+  select(-voltage, -distractor.condition)
+# need to merge in lag 2 baseline - lag 8 baseline
+p3b.distractor.baseline.difference <- eeg.data %>%
+  filter(electrode %in% c(54,55,79,78,61,62)) %>%
+  filter(distractor.condition == "Baseline") %>%
+  spread(lag.condition, voltage) %>%
+  mutate(difference.wave = Lag2 - Lag8) %>%
+  select(-Lag2, -Lag8)
+p3b.distractor.difference.waves <- p3b.distractor.data %>%
+  inner_join(p3b.distractor.baseline, by=c("subject", "t", "electrode")) %>%
+  filter(distractor.condition != "Baseline") %>%
+  mutate(difference.wave = voltage - baseline.voltage) %>%
+  select(-baseline.voltage, -voltage) %>%
+  rbind(p3b.distractor.baseline.difference) 
+
+#ggplot info
+distractorP3b.difference.summary <- p3b.distractor.difference.waves %>%
+  group_by(t, distractor.condition) %>%
+  summarize(M = mean(difference.wave), SE = sd(difference.wave) / sqrt(n()))
+
+ggplot(distractorP3b.difference.summary, aes(x=t, y=M, ymin=M-SE, ymax=M+SE))+
+  geom_ribbon(aes(fill=distractor.condition), alpha=0.3)+
+  geom_line(aes(color=distractor.condition), size=1)+
+  annotate("rect", fill="yellow", alpha=0.1, xmin=400, xmax = 550,ymin = -3, ymax=3) +
+  labs(title = "Distractor Response (P3b)",x="Time (ms)", y = "Amplitude (µV)", color = "Distractor Type, Lag 8 (Baseline Lag 2)")+
+  theme_bw()+
+  geom_vline(xintercept = 0) +
+   annotate("text", x = -35, y = 1.5, label = "Distractor Onset",angle = 90)+
+  annotate("text", x = 500, y = -2.5, label = "Distractor P3b")+
+  scale_y_reverse()+
+  scale_fill_discrete(guide=FALSE)
+```
+#####Distractor P3b ANOVA
+A one-way repeated measures ANOVA (distractor type: negative, neutral, baseline: lag8) on the average amplitude between 400 to 550 ms after the distractor onset at lag 8 will be conducted to determine the main effect of distractor types on the P3b component. 
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+#ANOVA
+#t= 400-550
+distractorP3b.anova <- p3b.distractor.difference.waves %>%
+ filter(t >= 400 & t<=550) %>%
+  group_by(distractor.condition, subject) %>%
+  summarise(m.volt= mean(difference.wave))
+
+
+ezANOVA(distractorP3b.anova, dv= m.volt, wid= subject, within = c(distractor.condition))
+
+```
+#####Distractor P3b t-tests
+One tailed, paired t-test comparing baseline < neutral condition for the P3b component distractor response.
+```{r echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE}
+#ttests
+#baseline < neutral?
+t.test(m.volt ~ distractor.condition,
+       data = (distractorP3b.anova %>% filter(distractor.condition != "Negative")),
+       paired = TRUE,
+       alternative="less")
+```
+One tailed, paired t-test comparing baseline < negative condition for the P3b component distractor response.
+```{r message=FALSE, warning=FALSE, paged.print=FALSE}
+#baseline < negative?
+t.test(m.volt ~ distractor.condition,
+       data = (distractorP3b.anova %>% filter(distractor.condition != "Neutral")),
+       paired = TRUE,
+       alternative="less")
+```
+One tailed, paired t-test comparing neutral < negative condition for the P3b component distractor response.
+```{r message=FALSE, warning=FALSE, paged.print=FALSE}
+#neutral < negative?
+t.test(m.volt ~ distractor.condition,
+       data = (distractorP3b.anova %>% filter(distractor.condition != "Baseline")),
+       paired = TRUE,
+       alternative="greater")
+
+```
+
+
+###Posterior Positivity
+Kennedy et al. analyze the effect of the posterior positivity (PP) component, similar to the N2 component, with a less known effect as the N2 and P3b components. This includes electrodes 96, 100, 101, 64, 68 and 69. Here, we analyze the effect of the PP component in response to the distractor, obtained by subtracting baseline lag 8 from all lag 2 conditions. The time window we examined is 405-615ms after distractor onset.
+In a two-factor ANOVA analyzing hemisphere and distractor conditon effect with respect to mean voltage, we found a significant effect of hemisphere, F(1,21)=4.66, p=.042, and hemisphere x distractor condition interaction, F(1,21)=6.36, p=.019, but no effect of distractor condition, F(1,21)=.09, p=.76.
+
+#####PP Visualization
+We analyze the effect of the PP component in response to the distractor, obtained by subtracting baseline lag 8 from all lag 2 conditions. The time window we examined is 405-615ms after distractor onset.
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+postpos <- eeg.data %>%
+  filter(electrode %in% c(96, 100, 101, 64, 68, 69)) %>%
+  mutate(hemisphere=if_else (electrode %in% c(96, 100, 101), "right", "left"))%>%
+  filter(lag.condition == "Lag8") %>%
+  group_by(subject, lag.condition, t, distractor.condition, hemisphere) %>%
+  summarize(M.voltage = mean(voltage)) %>%
+  ungroup()
+
+#create lag8 baseline only file
+postpos.baseline <- postpos %>%
+  filter(distractor.condition == "Baseline")%>%
+  mutate(b.voltage = M.voltage) %>%
+  select(subject, t, b.voltage, hemisphere)
+  
+#create lag8 neg/ neutral file
+postpos.nn <- postpos %>%
+  filter(lag.condition != "Baseline")%>%
+  mutate(nn.voltage = M.voltage) %>%
+  select(subject, t, nn.voltage, distractor.condition, hemisphere)
+
+#join and do difference
+postpos.difference <- postpos.nn %>%
+  inner_join(postpos.baseline) %>%
+  mutate(difference.wave = nn.voltage - b.voltage) %>%
+  select(subject, t, distractor.condition, difference.wave, hemisphere)
+
+#ggplot info
+postpos.summary <- postpos.difference %>%
+  group_by(t, distractor.condition) %>%
+  summarize(M = mean(difference.wave), SE = sd(difference.wave) / sqrt(n()))
+
+ggplot(postpos.summary, aes(x=t, y=M, ymin=M-SE, ymax=M+SE))+
+  geom_ribbon(aes(fill=distractor.condition), alpha=0.3)+
+  geom_line(aes(color=distractor.condition), size=1)+
+  annotate("rect", fill="yellow", alpha=0.1, xmin=405, xmax = 615,ymin = -3, ymax=3) +
+  labs(title = "Distractor Response (Posterior Positivity)",x="Time (ms)", y = "Amplitude (µV)", color = "Distractor Type")+
+  theme_bw()+
+  geom_vline(xintercept = 0) +
+   annotate("text", x = -35, y = 1.75, label = "Distractor Onset",angle = 90)+
+  annotate("text", x = 500, y = -2.5, label = "Distractor Posterior Positivity")+
+  scale_y_reverse()+
+  scale_fill_discrete(guide=FALSE)
+```
+#####PP ANOVA
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+#posterior positivity ANOVA
+#t = 405-615ms
+postpos.anova <- postpos.difference %>%
+ filter(t >= 405 & t<=615) %>%
+  filter(distractor.condition != "Baseline") %>%
+  group_by(hemisphere, distractor.condition, subject) %>%
+  summarise(min.volt= mean(difference.wave))
+
+
+ezANOVA(postpos.anova, dv= min.volt, wid= subject, within = c(hemisphere, distractor.condition))
+
+```
+
+###Correct vs. Incorrect Behavior with Target and Distractor
+In this analysis we focus on lag2, because this is where the task errors occur.
+####N2 and PP
+We are interested in the time window 250-350ms post distractor onset for the N2 component, and the 410-650ms window for PP. We conducted a one-sample t-test to see if the N2 difference wave (incorrect-correct) is significantly greater than 0. We found a significant effect here, t(21)=3.48, p=.001. For PP, we found that the difference wave was not quite significantly less than 0, t(21)=-1.66, p=.055.
+
+#####N2 and PP Correct v. Incorrect t-tests
+T-test for N2 component
+```{r echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE}
+eeg.data.correct.incorrect <- read_csv('data/eeg-data-correct-incorrect-tidy.csv', progress
+=FALSE) %>%
+  filter(subject %in% good.subjects)
+
+# NOTE: Kennedy et al. are ambiguous about which electrodes are the correct set here. They state that it is the same as the prior electrode set, but used slightly different electrode sets for the N2 and PP analyses. The list of electrodes may need to change.
+n2.pp.correct.incorrect <- eeg.data.correct.incorrect %>%
+  filter(electrode %in% c(64,68,69,89,94,95))
+n2.pp.correct.incorrect.difference.wave <- n2.pp.correct.incorrect %>%
+  spread(correct.condition, voltage) %>%
+  mutate(difference.wave = Incorrect - Correct) %>%
+  select(-Correct, -Incorrect)
+
+#ttests
+#n2, diff>0?
+n2.pp.correct.incorrect.difference.wave %>%
+  filter(t %in% 250:350) %>%
+  group_by(subject) %>%
+  summarize(M = mean(difference.wave)) %>%
+  pull(M) %>%
+  t.test(mu=0, alternative = "greater")
+```
+T-test for PP component
+```{r message=FALSE, warning=FALSE, paged.print=FALSE}
+#pp, diff<0?
+n2.pp.correct.incorrect.difference.wave %>%
+  filter(t %in% 410:650) %>%
+  group_by(subject) %>%
+  summarize(M = mean(difference.wave)) %>%
+  pull(M) %>%
+  t.test(mu=0, alternative = "less")
+```
+#####N2 and PP Correct v. Incorrect Behavior with Target and Distractor Visualization
+```{r message=FALSE, warning=FALSE, paged.print=FALSE}
+n2.pp.correct.incorrect.plot.data <- n2.pp.correct.incorrect %>%
+group_by(correct.condition, t) %>%
+summarize(M = mean(voltage), SE = sd(voltage) / sqrt(n()))
+
+n2.pp.correct.incorrect.difference.wave.plot.data <- n2.pp.correct.incorrect.difference.wave %>%
+group_by(t) %>%
+summarize(M = mean(difference.wave), SE = sd(difference.wave) / sqrt(n()))
+
+ggplot(n2.pp.correct.incorrect.plot.data, aes(x=t,y=M,, ymin=M-SE, ymax=M+SE, color=correct.condition))+
+geom_line()+
+    geom_ribbon(aes(fill=correct.condition), alpha=0.3)+
+  geom_line(aes(color=correct.condition), size=1)+
+geom_line(data=n2.pp.correct.incorrect.difference.wave.plot.data, aes(color=NA))+
+scale_y_reverse()+
+scale_x_continuous(limits = c(-200,800), expand=c(0,0))+
+annotate("rect", xmin=250,xmax=350,ymin=-8,ymax=2, alpha=0.2)+
+annotate("rect", xmin=410,xmax=650,ymin=-8,ymax=2, alpha=0.2)+
+     labs(title = "Correct/ Incorrect trials for N2 and PP",x="Time (ms)", y = "Amplitude (µV)", color = "Outcome")+
+    geom_vline(xintercept = 0) +
+    geom_vline(xintercept = 200) +
+   annotate("text", x = -35, y = -1.5, label = "Distractor Onset",angle = 90)+
+  annotate("text", x = 135, y = -1.5, label = "Target Onset",angle = 90)+
+  scale_y_reverse()+
+  scale_x_continuous(limits = c(-200,800), expand=c(0,0))+
+  annotate("text", x = 300, y = 6, label = "N2")+
+  annotate("text", x = 500, y = -6, label = "PP")+
+  annotate("rect", fill = "yellow", xmin=250,xmax=350,ymin=-8,ymax=2, alpha=0.2)+
+  annotate("rect", fill = "yellow", xmin=410,xmax=650,ymin=-8,ymax=2, alpha=0.2)+
+  scale_fill_discrete(guide=FALSE)+
+theme_bw()
+
+```
+
+
+
+####P3b 
+For the P3b target and distractor comparison with correct/ incorrect trials, we again examined the 400-550ms window for the distractor, and that the difference wave (incorrect-correct trials) was not significantly less than 0, t(21)=-1.51, p=.13.
+For the target, we examined the 635-995ms time window, and found that the difference wave was significantly greater than 0, t(21) = 3.37, p=.0014.
+
+#####Correct v. Incorrect P3b Component t-tests
+T-test for distractor image in the P3b component.
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+p3b.correct.incorrect <- eeg.data.correct.incorrect %>%
+  filter(electrode %in% c(54,55,79,78,61,62))
+p3b.correct.incorrect.difference.wave <- p3b.correct.incorrect %>%
+  spread(correct.condition, voltage) %>%
+  mutate(difference.wave = Incorrect - Correct) %>%
+  select(-Correct, -Incorrect)
+
+#P3b, distractor diff<0?
+p3b.correct.incorrect.difference.wave %>%
+  filter(t %in% 400:550) %>%
+  group_by(subject) %>%
+  summarize(M = mean(difference.wave)) %>%
+  pull(M) %>%
+  t.test(mu=0, alternative = "greater")
+```
+T-test for target image in the P3b component.
+```{r message=FALSE, warning=FALSE, paged.print=FALSE}
+#P3b, target diff<0?
+p3b.correct.incorrect.difference.wave %>%
+  filter(t %in% 635:995) %>%
+  group_by(subject) %>%
+  summarize(M = mean(difference.wave)) %>%
+  pull(M) %>%
+  t.test(mu=0, alternative = "less")
+```
+
+
+
+#####P3b Correct v. Incorrect Behavior with Target and Distractor Visualization
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+p3b.correct.incorrect.plot.data <- p3b.correct.incorrect %>%
+  group_by(correct.condition, t) %>%
+  summarize(M = mean(voltage), SE = sd(voltage)/sqrt(n()))
+
+p3b.correct.incorrect.difference.wave.plot.data <- p3b.correct.incorrect.difference.wave %>%
+  group_by(t) %>%
+  summarize(M = mean(difference.wave), SE = sd(difference.wave)/sqrt(n()))
+
+
+ggplot(p3b.correct.incorrect.plot.data, aes(x=t,y=M,color=correct.condition, ymin=M-SE, ymax=M+SE))+
+  geom_ribbon(aes(fill=correct.condition), alpha=0.3)+
+  geom_line(aes(color=correct.condition), size=1)+
+  geom_line(data=p3b.correct.incorrect.difference.wave.plot.data, aes(color=NA))+
+   labs(title = "Correct/ Incorrect trials for P3b Target and Distractor",x="Time (ms)", y = "Amplitude (µV)", color = "Outcome")+
+   geom_vline(xintercept = 0) +
+   geom_vline(xintercept = 200) +
+   annotate("text", x = -35, y = 1.5, label = "Distractor Onset",angle = 90)+
+  annotate("text", x = 135, y = 1.5, label = "Target Onset",angle = 90)+
+  scale_y_reverse()+
+  scale_x_continuous(limits = c(-200,1200), expand=c(0,0))+
+  annotate("text", x = 500, y = -2.5, label = "Distractor")+
+  annotate("text", x = 800, y = -2.5, label = "Target")+
+  annotate("rect", fill = "yellow", xmin=400,xmax=550,ymin=-2.5,ymax=2, alpha=0.2)+
+  annotate("rect", fill = "yellow", xmin=635,xmax=995,ymin=-2.5,ymax=2, alpha=0.2)+
+  scale_fill_discrete(guide=FALSE)+
+  theme_bw()
+
+
+
+```
+#Discussion
+We identified several points where our study replicated the results of Kennedy et al. (2014), and, some where our results contradicted theirs.  
+  In our behavioral analysis, we found that our results perfectly replicated the findings of Kennedy et al. (2014). Our results showed that in the lag 2 condition, the distractor images impaired task accuracy, where the negative image yielded more incorrect trials than the neutral condition, and that the lag 8 condition had no effect in any condition, meaning the EIB effect is only witnessed when the distractor and target are in rapid succession (lag 2, 200ms).  
+  In our analysis of the distractor effect on the N2 component, we found conflicting results in that in our data, neutral exceeded the negative condition, where we expected the opposite to occur. The logic behind this is that the attention selection (N2) of the negative distractor should grab more attention and result in amplified voltage compared to the neutral condition. We did see significance when comparing these conditions individually to the baseline condition, thus implying that the distractor caused an N2 peak, or, following the logic that N2 reflects attentional selection, the distractors were attended to, however, our results also implied that there was not an attentional difference between the neutral and negative condition, which calls into question our assumption that the emotionally arousing image elicits a differential attentional effect, or grabs attention more than a neutral image. This experimental design also rests upon the axiom that the negative image is synonymous with emotion arousal, which is a claim we also might call into question. It is important to note, too, that the behavioral data did reflect diminished task accuracy, implying that there was, undoubtedly, an effect of the negative image. We might also question the assumed role of the N2 component in attentional selection. Kennedy et al. (2014) used minimum voltage to asses N2 distractor effect, and we believe this is a potentially unnecessary researcher degree of freedom. When using the mean voltage, would they still have seen significance?   
+  In our analysis of the target effect on the N2 component, our results reflected similar findings to Kennedy et al. (2014), where in the negative condition, the target had the highest voltage peak for the baseline component, followed by the neutral and negative component. Given the theory that N2 reflects attentional selection, this implies that in the baseline condition, the target had more attention activity than the neutral and negative distractor conditions. Unlike Kennedy et al. (2014), we did not see a significant difference between the negative and neutral distractor types.  
+  In our analysis of the target effect on the P3b component, our results replicated the findings of Kennedy et al. (2014), where baseline exceeded negative and neutral conditions in consolidation of the target into working memory (if the P3b component theory holds). We also found pairwise differences between distractor conditions and baseline, but not between neutral and negative conditions themselves, just like Kennedy et al. (2014).  
+  In our analysis of the distractor effect on the P3b component, we did not replicate the findings of Kennedy et al. (2014), perhaps due to the fact that we used their time window (as we did with all other analyses, however, they chose their time window based on their specific data). They chose to include the baseline lag 2 condition, which struck us as odd, because this condition includes the target effect which is not the aim of this analysis. We would be curious to see their data including the baseline as lag 8, or a flat line at 0 (as done in the N2 distractor analysis). Kennedy et al. found the negative condition to be significantly greater than the neutral and baseline conditions, but no difference between the neutral and baseline conditions. This implies a difference in consolidation into WM for the negative condition if the P3b theory holds true. We found that the negative condition was not significantly greater than the baseline condition (unlike Kennedy et al.), but like Kennedy et al., found that the negative condition was significantly greater than the neutral condition. Also like Kennedy et al., we did not find a significant difference between baseline and neutral conditions. This would imply consolidation into WM functions differently for a negative image compared to a neutral image, but not compared to a baseline image, which calls into question Kennedy et al.'s findings.  
+  In our analysis of the PP component, we, unlike Kennedy et al. (2014), found a significant effect of hemisphere and hemisphere x distractor condition interaction, but no effect of distractor conditions. This is the exact opposite of Kennedy et al. (2014)’s findings, but is not surprising considering our conflicting results on the N2 component, which features several of the same electrodes (64, 68, 69), as well as electrodes very close in proximity. Kennedy et al. (2014) theorize that PP reflects a similar attentional selection and goes hand-in-hand with the N2 component, or that PP perhaps reflects disengagement of attention. Since we had conflicting data regarding the N2 component, we are not able to make any interesting further claims regarding the role of PP or relationship between N2 and PP as our understanding of this region as a whole in its relation to attentional selection is called into question as a result of our findings. 
+  In our analysis of the incorrect/ correct trials compared to the activity in the N2 and PP components comparing accuracy in the negative condition, we found a significant effect of the N2 difference wave, but not for PP, where Kennedy et al. (2014) found a significant effect for both. We did not examine effect between N2 hemispheres like Kennedy et al. (2014) did, but they did not see a significant difference here. This implies that attentional selection (N2) significantly differed with task accuracy in identifying the rotated image following a negative distractor.  
+  In our analysis of the incorrect/ correct trials compared to the activity in the P3b region during distractor and target presentation, we found no significant effect between accuracy and voltage for the negative condition in response to the distractor, but did see a significant effect for the target. Kennedy et al. (2014) found a significant effect for both the target and the distractor, thus our findings about the target only replicated. This implies that consolidation into working memory (P3b) significantly differed upon seeing the target with task accuracy in identifying the rotated image following a negative distractor, but there was no P3b difference in incorrect trials upon seeing the distractor.  
+  Our findings most strongly replicate Kennedy et al. (2014) in terms of the behavioral EIB phenomena and in target effect, however we saw variation from their findings in our analysis of the N2 component, which calls into question the role of N2. We had internal issues recruiting participants and in data recording that resulted in a smaller sample size than our original intent, which could account for some of the differences. We also featured no monetary compensation in our task, unlike Kennedy et al. (2014), however, we saw behavioral isomorphism, implying that this did not make a difference.  
+
+
+  
+#References
+Kennedy, B. L., Rawding, J., Most, S. B., & Hoffman, J. E. (2014). Emotion-induced blindness reflects competition at early and late processing stages: An ERP study. Cognitive, Affective and Behavioral Neuroscience, 14(4), 1485–1498. https://doi.org/10.3758/s13415-014-0303-x
+

@@ -1,0 +1,404 @@
+---
+title: "Pong"
+output: html_notebook
+---
+
+```{r Packahe Declarations, echo=FALSE, message=FALSE, warning=FALSE}
+library(readr)
+library(MASS)
+library(dplyr)
+library(ggplot2)
+library(ez)
+library(tidyr)
+
+```
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE}
+#import data
+data<- read_csv('data/pong_data.csv', progress = FALSE)
+
+data<-data%>%
+  #get rid of null
+  filter(round!="NULL")
+
+for (i in seq (1,6000,4)){
+  key = data$humanPaddleSize[i]
+  data$humanPaddleSize[i+1]=key
+  data$humanPaddleSize[i+2]=key
+  data$humanPaddleSize[i+3]=key
+}
+
+data <- data%>%
+#exclusion of participants who guessed hypothesis
+  #filter(worker_id !='5af170135847970001e3409a', worker_id !='5bc0929b23d6170001b92120', worker_id != '5c9c427adfaa65001531ca29', worker_id != '5c696229bd58280001b4f554')%>%
+  #change value of guess to reflect correct order of ordinal data, make 2-> 3 and 3-> 2
+  mutate(guess= case_when(
+    #same speed becomes 2
+    guess == 3 ~ 2,
+    #target slower becomes 3
+    guess == 2 ~ 3,
+    #target faster becomes 1
+    guess == 1 ~ 1,
+    
+    #1= target faster
+    #2= same speed
+    #3= target slower
+  ))
+  
+```
+
+
+```{r}
+pong<-data %>% 
+  
+  filter(trial_type== "pong", phase == "real-level")
+
+
+keyboard<-data %>%
+  filter(trial_type!="pong")%>%
+  dplyr::select(worker_id,response, button_pressed)
+
+```
+
+```{r}
+#Ordinal Logistic Regression, based on paddle size and guess
+OLR<-data %>%
+  filter(phase == "real-level", trial_type== "pong", guess != "") %>%
+
+  #make guess a factor
+  mutate(guess=factor(guess), humanPaddleSize=as.numeric(humanPaddleSize), speed=as.numeric(speed))%>%
+  dplyr::select(humanPaddleSize, guess, worker_id, speed, humanScore, aiScore)
+
+# visualizing the data at the whole group level
+# (this is not my favorite visualization; you can probably come up with a better one!)
+
+ggplot(OLR, aes(x=humanPaddleSize, y=guess))+
+  geom_bin2d()+
+  labs(title = "Guess by Paddle Size",x="Paddle Size", y = "Guess", color = "Frequency")+
+  scale_color_discrete(labels= c("Target Faster", "Same Speed", "Target Slower"))
+
+
+# fit the model.
+# predict ordinal judgement response from paddle size, with participant as a random-effect to control for subject-specific differences.
+
+
+m <- polr(guess ~ humanPaddleSize + worker_id, data = OLR, Hess = T)
+
+# model summary
+
+summary(m)
+
+# key thing in the model is the coefficient of the paddle factor.
+
+paddle.coef <- coef(m)['humanPaddleSize']
+
+# the coef is in logits. if we take the exponential, we get odds ratio.
+
+exp(paddle.coef)
+
+# if this value is 1 it means that the changing the paddle size has no effect on the odds of changing the response.
+# if the value is > 1 then the odds of responding "target-larger" go up as paddle size gets SMALLER.
+# if the value is < 1 then the odds of responding "target-larger" go down as paddle size gets SMALLER.
+# for example if the exp(paddle.coef) is 1.2, then a response of "target-larger" relative to "equal" is 1.2 times as likely when the paddle size gets 1 unit smaller.
+
+# we can get a p-value on this coef:
+
+t.stat <- coef(summary(m))[1,3]
+p.val <- pnorm(abs(t.stat), lower.tail = FALSE)*2
+
+
+```
+
+```{r}
+#bar graphs
+
+#making count variable
+bar<-OLR%>%
+ group_by(guess, humanPaddleSize)%>%
+  summarise(count = n())
+
+#graph
+ggplot(bar, aes(humanPaddleSize, count)) +   
+  geom_bar(aes(fill = guess, color = guess, group = guess), position = "dodge", stat="identity")+
+  labs(title = "Guess by Paddle Size",x="Paddle Size", y = "Frequency", color = "Guess")+
+  scale_fill_discrete(guide=FALSE)+
+  scale_color_discrete(labels= c("Target Faster", "Same Speed", "Target Slower"))
+
+#maybe re-include participants
+
+```
+- not significant
+- in all conditions, people believed balls were going the same speed the most frequently 
+when the paddle was larger
+- chi squared, t-tests?
+
+
+
+Exploratory
+    - logistic ordinal regression, absolute speed of balls and guess
+```{r}
+
+ggplot(OLR, aes(x=speed, y=guess))+
+  geom_bin2d()+
+    labs(title = "Guess by Absolute Speed",x="Speed", y = "Guess", color = "Frequency")+
+  scale_color_discrete(labels= c("Target Faster", "Same Speed", "Target Slower"))
+
+
+
+m2 <- polr(guess ~ speed + worker_id, data = OLR, Hess = T)
+summary(m2)
+paddle.coef <- coef(m2)['speed']
+exp(paddle.coef)
+t.stat2 <- coef(summary(m2))[1,3]
+p.val2 <- pnorm(abs(t.stat2), lower.tail = FALSE)*2
+
+#maybe make bar graph
+
+```
+```{r}
+#making count variable
+bar.speed<-OLR%>%
+  mutate(speed=factor(speed))%>%
+ group_by(guess, speed)%>%
+  summarise(count = n())
+
+#graph
+ggplot(bar.speed, aes(speed, count)) +   
+  geom_bar(aes(fill = guess, color = guess, group = guess), position = "dodge", stat="identity")+
+    labs(title = "Guess by Absolute Speed",x="Absolute Speed", y = "Frequency", color = "Guess")+
+  scale_fill_discrete(guide=FALSE)+
+  scale_color_discrete(labels= c("Target Faster", "Same Speed", "Target Slower"))
+```
+    - Linear ordinal regression, paddle size and reported length of trial (code) (diff rows, for loop to merge together)
+    
+```{r}
+size.time<- data %>%
+  filter(question == "length")%>%
+  mutate(button_pressed=factor(button_pressed), humanPaddleSize=as.numeric(humanPaddleSize))%>%
+  select(button_pressed, humanPaddleSize, worker_id)
+
+ggplot(size.time, aes(x=humanPaddleSize, y=button_pressed))+
+  geom_bin2d()+
+    labs(title = "Duration Perception by Paddle Size",x="Paddle Size", y = "Duration Perception", color = "Frequency")+
+  scale_color_discrete(labels= c("10s", "15s", "20s"))
+m3 <- polr(button_pressed ~ humanPaddleSize + worker_id, data = size.time, Hess = T)
+summary(m3)
+paddle.coef <- coef(m3)['humanPaddleSize']
+exp(paddle.coef)
+t.stat3 <- coef(summary(m3))[1,3]
+p.val3 <- pnorm(abs(t.stat3), lower.tail = FALSE)*2
+
+  #not very predictive
+  
+```
+```{r}
+#making count variable
+bar.time<-size.time%>%
+ group_by(button_pressed, humanPaddleSize)%>%
+  summarise(count = n())
+
+#graph
+ggplot(bar.time, aes(humanPaddleSize, count)) +   
+  geom_bar(aes(fill = button_pressed, color= button_pressed, group = button_pressed), position = "dodge", stat="identity")+
+  labs(title = "Time Perception by Paddle Size",x="Paddle Size", y = "Frequency", color = "Time Perception")+
+  scale_fill_discrete(guide=FALSE)+
+  scale_color_discrete(labels= c("10s", "15s", "20s"))
+```
+
+
+
+Paddle size predicts score, Did it actually make the game harder
+```{r}
+score<- OLR %>%
+  mutate(net.score=as.numeric(humanScore)-as.numeric(aiScore))
+
+#scatter plot or boxplot
+
+ezANOVA(score, dv= net.score, wid= worker_id, within=humanPaddleSize)
+
+summary.score.paddle<-score%>%
+  group_by(humanPaddleSize)%>%
+  summarize(agg.scores=mean(net.score))
+
+
+
+```
+
+- Anova to see if ball speed predicts score
+        - Did it make the game harder
+
+```{r}
+ezANOVA(score, dv= net.score, wid= worker_id, within=speed)
+
+summary.score.speed<-score%>%
+  group_by(speed)%>%
+  summarize(agg.scores=mean(net.score))
+#people did worst at slowest speed, AI best at it ...
+```
+
+```{r}
+#Josh's 
+#Guess by Paddle Size
+bar.plot <-OLR %>% group_by(guess, humanPaddleSize, worker_id)%>%
+  summarize(count = n()/10) %>%
+  group_by(guess, humanPaddleSize) %>% summarize(average_proportion = mean(count))
+  
+
+ggplot(bar.plot %>% filter(humanPaddleSize == .5), aes(as.factor(guess), average_proportion)) +   
+  geom_bar(aes(fill = guess), position = "dodge", stat="identity")+ scale_x_discrete(
+        labels=c("Faster Target", "Same Speed", "Faster Background")) +   labs(title = "Guess with Small Paddle",x="Guess", y = "Frequency", color = "Guess")+
+  theme(legend.position = "none")
+  
+
+ggplot(bar.plot %>% filter(humanPaddleSize == 1.2), aes(as.factor(guess), average_proportion)) +   
+  geom_bar(aes(fill = guess), position = "dodge", stat="identity")+ scale_x_discrete(
+        labels=c("Faster Target", "Same Speed", "Faster Background")) + labs(title = "Guess with Medium Paddle",x="Guess", y = "Frequency", color = "Guess")+
+  theme(legend.position = "none")
+
+ggplot(bar.plot %>% filter(humanPaddleSize == 1.9), aes(as.factor(guess), average_proportion)) +   
+  geom_bar(aes(fill = guess), position = "dodge", stat="identity")+ scale_x_discrete(
+        labels=c("Faster Target", "Same Speed", "Faster Background")) + labs(title = "Guess with Large Paddle",x="Guess", y = "Frequency", color = "Guess")+
+  theme(legend.position = "none")
+```
+```{r}
+#Josh's 
+#Guess by Absolute Speed
+bar.plot.speed <-OLR %>% group_by(guess, speed, worker_id)%>%
+  summarize(count = n()/10) %>%
+  group_by(guess, speed) %>% summarize(average_proportion = mean(count))
+  
+
+ggplot(bar.plot.speed %>% filter(speed == 13), aes(as.factor(guess), average_proportion)) +   
+  geom_bar(aes(fill = guess), position = "dodge", stat="identity")+ scale_x_discrete(
+        labels=c("Faster Target", "Same Speed", "Faster Background")) +   labs(title = "Guess with Slow Speed",x="Guess", y = "Frequency", color = "Guess")+
+  theme(legend.position = "none")
+  
+
+ggplot(bar.plot.speed %>% filter(speed == 15), aes(as.factor(guess), average_proportion)) +   
+  geom_bar(aes(fill = guess), position = "dodge", stat="identity")+ scale_x_discrete(
+        labels=c("Faster Target", "Same Speed", "Faster Background")) + labs(title = "Guess with Medium Speed",x="Guess", y = "Frequency", color = "Guess")+
+  theme(legend.position = "none")
+
+ggplot(bar.plot.speed %>% filter(speed == 17), aes(as.factor(guess), average_proportion)) +   
+  geom_bar(aes(fill = guess), position = "dodge", stat="identity")+ scale_x_discrete(
+        labels=c("Faster Target", "Same Speed", "Faster Background")) + labs(title = "Guess with Fast Speed",x="Guess", y = "Frequency", color = "Guess")+
+  theme(legend.position = "none")
+```
+```{r}
+#Duration Paddle Size
+bar.plot.dur <-size.time %>% group_by(button_pressed, humanPaddleSize, worker_id)%>%
+  summarize(count = n()/10) %>%
+  group_by(button_pressed, humanPaddleSize) %>% summarize(average_proportion = mean(count))
+  
+
+ggplot(bar.plot.dur %>% filter(humanPaddleSize == .5), aes(as.factor(button_pressed), average_proportion)) +   
+  geom_bar(aes(fill = button_pressed), position = "dodge", stat="identity")+ scale_x_discrete(
+        labels=c("10s", "15s", "20s")) +   labs(title = "Duration Perception with Small Paddle",x="Duration Guess", y = "Frequency", color = "Guess")+
+  theme(legend.position = "none")
+  
+
+ggplot(bar.plot.dur %>% filter(humanPaddleSize == 1.2), aes(as.factor(button_pressed), average_proportion)) +   
+  geom_bar(aes(fill = button_pressed), position = "dodge", stat="identity")+ 
+  scale_x_discrete(labels=c("10s", "15s", "20s")) + 
+  labs(title = "Duration Perception with Medium Paddle",x="Duration Guess", y = "Frequency", color = "Guess")+
+  theme(legend.position = "none")
+
+ggplot(bar.plot.dur %>% filter(humanPaddleSize == 1.9), aes(as.factor(button_pressed), average_proportion)) +   
+  geom_bar(aes(fill = button_pressed), position = "dodge", stat="identity")+ scale_x_discrete(
+        labels=c("10s", "15s", "20s")) + labs(title = "Duration Perception with Large Paddle",x="Duration Guess", y = "Frequency", color = "Guess")+
+  theme(legend.position = "none")
+```
+
+
+```{r}
+ participant.response.pong <- data %>%
+ filter(humanScore!="NULL",aiScore!= "NULL", trial_type=="pong") %>% 
+   mutate(difference.score = as.numeric(humanScore)-as.numeric(aiScore))%>%
+  mutate(humanPaddleSize = as.numeric(humanPaddleSize))
+ 
+```
+
+
+```{r}
+#Paddle Size and Score
+participant.response.pong$humanPaddleSize <- as.factor(participant.response.pong$humanPaddleSize)
+
+paddle.score.ANOVA <- participant.response.pong%>%
+ ezANOVA(dv=difference.score, within=c(humanPaddleSize), wid = worker_id)
+paddle.score.ANOVA$ANOVA
+
+paddle.score <-participant.response.pong%>% 
+  mutate(difference.score=factor(difference.score), humanPaddleSize=as.numeric(humanPaddleSize))%>%
+  group_by(difference.score, humanPaddleSize, worker_id)%>%
+  summarize(count = n()/10) %>%
+  group_by(difference.score, humanPaddleSize) %>% summarize(average_proportion = mean(count))
+
+
+
+
+ggplot(paddle.score, aes(factor(humanPaddleSize), factor(difference.score))) +   
+  geom_bar(aes(fill = factor(difference.score), color = factor(difference.score), group = factor(difference.score)), position = "dodge", stat="identity")+
+  labs(title = "Paddle Size and Score",x="Paddle Size", y = "Score")+
+  scale_x_discrete(labels=c("Small", "Medium", "Large"))+
+    theme(legend.position = "none")
+  
+
+
+```
+
+```{r}
+#Speed and Score
+participant.response.pong$speed <- as.factor(participant.response.pong$speed)
+
+speed.score.ANOVA <- participant.response.pong%>%
+ ezANOVA(dv=difference.score, within=c(speed), wid = worker_id)
+speed.score.ANOVA$ANOVA
+
+speed.score <-participant.response.pong%>% 
+  mutate(difference.score=factor(difference.score), speed=as.numeric(speed))%>%
+  group_by(difference.score, speed, worker_id)%>%
+  summarize(count = n()/10) %>%
+  group_by(difference.score, speed) %>% summarize(average_proportion = mean(count))
+
+
+
+
+ggplot(speed.score, aes(factor(speed), factor(difference.score))) +   
+  geom_bar(aes(fill = factor(difference.score), color = factor(difference.score), group = factor(difference.score)), position = "dodge", stat="identity")+
+  labs(title = "Absolute Speed and Score",x="Speed", y = "Score")+
+  scale_x_discrete(labels=c("Slow", "Moderate", "Fast"))+
+    theme(legend.position = "none")
+  
+
+
+```
+
+
+```{r}
+#How Well They Think THey Did
+task.demand.data <-  data %>% 
+  filter(trial_type == 'html-slider-response' | trial_type == 'pong') %>%
+  mutate(guess = if_else(trial_type == 'html-slider-response', lag(guess), guess)) %>%
+  filter(trial_type == 'html-slider-response') %>%
+  filter(guess %in% c("1", "2")) %>%
+  mutate(guess = factor(if_else(guess=="1", 1, 0))) %>%
+  mutate(response = as.numeric(response)) %>%
+  group_by(worker_id, guess) %>% 
+  summarize(mean_response = mean(response))
+
+subjects.with.both <- task.demand.data %>% group_by(worker_id) %>% summarize(count=n()) %>% filter(count==2) %>% pull(worker_id)
+
+task.demand.data <- task.demand.data %>%
+  filter(worker_id %in% subjects.with.both)
+
+plot(mean_response ~ guess, data = task.demand.data)
+t.test(mean_response ~ guess, data = task.demand.data, paired=T)
+
+target.vs.bg <- data %>% filter(phase == 'real-level', guess %in% c('1','2')) %>% dplyr::select(guess) %>% mutate(guess = if_else(guess == '1', 0, 1))
+
+```
+

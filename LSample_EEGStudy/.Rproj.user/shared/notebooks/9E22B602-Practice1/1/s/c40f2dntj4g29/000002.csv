@@ -1,0 +1,8 @@
+"0","```r
+eeg.stats.data <- eeg.data %>%
+  filter(electrode %in% c(11,62,129)) %>%
+  filter(t %in% c(300:500)) %>%
+  group_by(electrode, condition, subject) %>%
+  summarize (voltage = mean(voltage))
+eeg.stats.data$electrode <- factor(eeg.stats.data$electrode)
+```"

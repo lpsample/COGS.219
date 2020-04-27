@@ -1,0 +1,8 @@
+"0","```r
+anova.result <- ezANOVA(eeg.stats.data, dv = voltage, within=c(electrode, condition), wid=subject)
+```"
+"1","Converting \"subject\" to factor for ANOVA.Converting \"condition\" to factor for ANOVA.
+"
+"0","```r
+anova.result$ANOVA
+```"

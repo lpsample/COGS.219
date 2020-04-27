@@ -1,0 +1,5 @@
+"0",""
+"0","ggplot(bar.plot %>% filter(humanPaddleSize == 1.9), aes(as.factor(guess), average_proportion)) +   "
+"0","  geom_bar(aes(fill = guess), position = ""dodge"", stat=""identity"")+ scale_x_discrete("
+"0","        labels=c(""Faster Target"", ""Same Speed"", ""Faster Background"")) + labs(title = ""Guess with Large Paddle"",x=""Guess"", y = ""Frequency"", color = ""Guess"")+"
+"0","  theme(legend.position = ""none"")"

@@ -1,0 +1,8 @@
+"1","
+"
+"0","summary.score.paddle<-score%>%"
+"0","  group_by(humanPaddleSize)%>%"
+"0","  summarize(agg.scores=mean(net.score))"
+"0",""
+"0",""
+"0",""

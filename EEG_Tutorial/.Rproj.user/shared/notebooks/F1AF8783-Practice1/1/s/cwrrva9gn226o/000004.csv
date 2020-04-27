@@ -1,0 +1,6 @@
+"0","behavioral.data <- behavioral.data %>%"
+"0","  mutate(PercentCorrect ="
+"0","           CorrectResponses / 29*100)"
+"0","behavioral.data %>%"
+"0","  group_by(Condition) %>%"
+"0","summarize(M= mean(PercentCorrect), SD= sd(PercentCorrect))"

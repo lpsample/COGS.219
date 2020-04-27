@@ -1,0 +1,26 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1555340650750.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "2489720587",
+    "id" : "DF3A19CA",
+    "lastKnownWriteTime" : 1587952197,
+    "last_content_update" : 1587952197124,
+    "path" : "~/Documents/VASSAR/Junior/COGS219/EEG Study/LSample_EEGStudy/LSample_EIB_EEG.Rmd",
+    "project_path" : "LSample_EIB_EEG.Rmd",
+    "properties" : {
+        "chunk_output_type" : "inline",
+        "cursorPosition" : "197,11",
+        "scrollLine" : "181"
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 2,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_markdown"
+}

@@ -1,0 +1,11 @@
+"0","#anova"
+"0","# t >= 405 & t<=585"
+"0","lag2.n2.anova <- lag2.n2.difference %>%"
+"0"," filter(t >= 405 & t<=585) %>%"
+"0","  group_by(hemisphere, distractor.condition, subject) %>%"
+"0","  summarise(M.volt= mean(difference.wave))"
+"0",""
+"0",""
+"0","ezANOVA(lag2.n2.anova, dv= M.volt, wid= subject, within = c(hemisphere, distractor.condition))"
+"1","$ANOVA
+"

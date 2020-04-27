@@ -1,0 +1,7 @@
+"0","```r
+eeg.data %>% filter(electrode ==11) %>%
+  ggplot(aes(x=t,y=voltage,color=condition))+
+  scale_color_brewer(type=\"qual\",palette=\"Set2\")+
+  geom_line()+
+  facet_wrap(.~subject)
+```"

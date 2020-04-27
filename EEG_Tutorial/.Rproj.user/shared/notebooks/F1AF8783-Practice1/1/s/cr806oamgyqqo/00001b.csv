@@ -1,0 +1,8 @@
+"0","ggplot(grand.average.data, aes(x=t, y=voltage, color=condition)) +"
+"0","  geom_line() +"
+"0","  facet_grid(electrode ~ .) +"
+"0","  geom_hline(yintercept = 0) +"
+"0","  geom_vline(xintercept = 0) +"
+"0","  annotate(""rect"", fill=""yellow"", alpha=0.1, xmin=300, xmax = 500,ymin = -1.5, ymax=4) +"
+"0","  labs(x=""Time since stimulus onset (ms)"", y = ""Voltage (microvolts)"")+"
+"0","  theme_bw()"

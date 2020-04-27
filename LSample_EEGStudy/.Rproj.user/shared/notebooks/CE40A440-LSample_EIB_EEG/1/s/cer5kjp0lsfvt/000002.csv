@@ -1,0 +1,11 @@
+"0","#anova"
+"0","#get time we care about, get rid of baseline"
+"0","lag8.n2.anova <- lag8.n2.difference %>%"
+"0"," filter(t >= 185 & t<=275) %>%"
+"0","  filter(distractor.condition != ""Baseline"") %>%"
+"0","  group_by(hemisphere, distractor.condition, subject) %>%"
+"0","  summarise(min.volt= min(difference.wave))"
+"0",""
+"0","ezANOVA(lag8.n2.anova, dv= min.volt, wid= subject, within = c(hemisphere, distractor.condition))"
+"1","$ANOVA
+"

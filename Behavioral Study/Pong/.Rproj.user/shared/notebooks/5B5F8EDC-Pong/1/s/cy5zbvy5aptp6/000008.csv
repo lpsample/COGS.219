@@ -1,0 +1,12 @@
+"0","score<- OLR %>%"
+"0","  mutate(net.score=as.numeric(humanScore)-as.numeric(aiScore))"
+"0",""
+"0","#scatter plot or boxplot"
+"0",""
+"0","ezANOVA(score, dv= net.score, wid= worker_id, within=humanPaddleSize)"
+"2","Converting ""worker_id"" to factor for ANOVA."
+"2","""humanPaddleSize"" will be treated as numeric."
+"2","Collapsing data to cell means. *IF* the requested effects are a subset of the full design, you must use the ""within_full"" argument, else results may be inaccurate."
+"2","There is at least one numeric within variable, therefore aov() will be used for computation and no assumption checks will be obtained."
+"1","$ANOVA
+"

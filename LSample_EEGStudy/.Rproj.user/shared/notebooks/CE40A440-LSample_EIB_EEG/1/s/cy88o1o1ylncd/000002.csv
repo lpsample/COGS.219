@@ -1,0 +1,11 @@
+"0","#ANOVA"
+"0","# t >= 635-995ms"
+"0","targetP3b.anova <- targetP3b.difference %>%"
+"0"," filter(t >= 635 & t<=995) %>%"
+"0","  group_by(distractor.condition, subject) %>%"
+"0","  summarise(m.volt= mean(difference.wave))"
+"0",""
+"0",""
+"0","ezANOVA(targetP3b.anova, dv= m.volt, wid= subject, within = c( distractor.condition))"
+"1","$ANOVA
+"

@@ -1,0 +1,8 @@
+"0","#Paddle Size and Score"
+"0","participant.response.pong$humanPaddleSize <- as.factor(participant.response.pong$humanPaddleSize)"
+"0",""
+"0","paddle.score.ANOVA <- participant.response.pong%>%"
+"0"," ezANOVA(dv=difference.score, within=c(humanPaddleSize), wid = worker_id)"
+"2","Converting ""worker_id"" to factor for ANOVA."
+"2","Collapsing data to cell means. *IF* the requested effects are a subset of the full design, you must use the ""within_full"" argument, else results may be inaccurate."
+"0","paddle.score.ANOVA$ANOVA"

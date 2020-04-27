@@ -1,0 +1,363 @@
+---
+title: "EIB Study"
+output: html_notebook
+---
+
+```{r Packahe Declarations, message=FALSE, warning=FALSE}
+library(readr)
+library(dplyr)
+library(ggplot2)
+library(ez)
+library(tidyr)
+
+```
+#Introduction
+#Methods
+#Results
+*Behavioral results*
+
+```{r message=FALSE, warning=FALSE}
+#import behavioral data
+behavioral.data<- read_csv('data/behavioral-data-tidy.csv')
+```
+```{r}
+#filter target lag moments in the test phase
+trials <- behavioral.data %>% filter(target_lag %in% c(2, 8), phase == "test", correct != "null")
+
+#create numerical values for t/f
+trials <- trials %>%
+  mutate(correct_num =
+          (if_else(correct=="true", 1, 0)))
+ 
+         
+#find mean and SD for each participant
+sum_trials<- trials %>%
+  group_by(participant_id, distractor_type, target_lag) %>%
+summarize(M= mean(correct_num), SD= sd(correct_num))
+
+#find standard error, across participants
+sum_trials_grouped <- sum_trials %>%
+  group_by(target_lag, distractor_type) %>%
+summarize(M2= mean(M)*100, SE=sd(M*100)/sqrt(n()))
+
+#plot data (percent correct and lag)
+ggplot(sum_trials_grouped, aes(x=target_lag, y=M2, color=distractor_type, group=distractor_type)) +
+  geom_line() +
+  geom_errorbar(aes(ymin=M2-SE, ymax=M2+SE), width=0.25)+
+  labs(x="Lag", y = "Percent Accuracy", color = "Distractor Type")+
+  theme_bw()
+
+```
+
+Behavioral ANOVA comparing distractor type between lag conditions within subjects (distractor type: negative, baseline, neutral x lag2 vs 8)
+```{r}
+anova.result <- ezANOVA(trials, dv = correct_num, within=c(distractor_type, target_lag), wid=participant_id)
+anova.result$ANOVA
+```
+
+```{r}
+#Importing EEG data
+eeg.data<- read_csv('data/eeg-data-tidy.csv')
+
+```
+
+*N2*
+Plot/ Visualization
+
+```{r}
+#get electrodes we care about, 
+lag8.n2 <- eeg.data %>%
+  filter(electrode %in% c(64, 68, 69, 89, 94, 95)) %>%
+  mutate(hemisphere=if_else (electrode %in% c(89, 94, 95), "right", "left"))%>%
+  filter(lag.condition == "Lag8") %>%
+  group_by(subject, hemisphere, t, distractor.condition) %>%
+  summarize(M.voltage = mean(voltage)) 
+#create baseline only file
+lag8.n2.baseline <- lag8.n2 %>%
+  filter(distractor.condition == "Baseline") %>%
+  mutate(baseline.voltage = M.voltage) %>%
+  select(subject, t, hemisphere, baseline.voltage)
+#add in baseline col, find difference, dump cols we dont need
+lag8.n2.difference <- lag8.n2 %>%
+  inner_join(lag8.n2.baseline) %>%
+  mutate(difference.wave = M.voltage - baseline.voltage) %>%
+  select(subject, hemisphere, t, distractor.condition, difference.wave)
+
+#ggplot info
+lag8.n2.difference.summary <- lag8.n2.difference %>%
+  group_by(t, distractor.condition) %>%
+  summarize(M = mean(difference.wave), SE = sd(difference.wave) / sqrt(n()))
+
+ggplot(lag8.n2.difference.summary, aes(x=t, y=M, ymin=M-SE, ymax=M+SE))+
+  geom_ribbon(aes(fill=distractor.condition), alpha=0.3)+
+  geom_line(aes(color=distractor.condition), size=1)+
+  annotate("rect", fill="yellow", alpha=0.1, xmin=185, xmax = 275,ymin = -2, ymax=2) +
+   labs(x="Time (ms)", y = "Amplitude (µV)", color = "Distractor Type")+
+  geom_vline(xintercept = 0) +
+  theme_bw()
+
+
+
+```
+**N2 ANOVA Lag8, Negative and Neutral**
+Two factor ANOVA (hemisphere left, right x distractor type: negative and neutral on peak negativity of N2 at lag 8 on distractor) 185-275ms after distractor
+
+```{r}
+#anova
+#get time we care about, get rid of baseline
+lag8.n2.anova <- lag8.n2.difference %>%
+ filter(t >= 185 & t<=275) %>%
+  filter(distractor.condition != "Baseline") %>%
+  group_by(hemisphere, distractor.condition, subject) %>%
+  summarise(min.volt= min(difference.wave))
+
+
+
+ezANOVA(lag8.n2.anova, dv= min.volt, wid= subject, within = c(hemisphere, distractor.condition))
+```
+**N2 T-Tests**
+Single sample t test peak amplitude of N2 sig diff from 0 for both negative distractor and neutral distractor (aka diff from baseline)
+
+
+```{r}
+#Welch t-test
+t.test(peak ~ distractor.condition, data=n2.distractor.t.test.data, alternative=c("less"))
+
+help
+```
+
+
+```{r}
+# One sample t-tests
+#get rid of hemisphere, summarise to fix discrepancy, take min
+lag8.n2.ttest <- lag8.n2.anova %>%
+  group_by(distractor.condition, subject) %>%
+  summarise(min.volt= min(min.volt))
+#negative
+t.test((lag8.n2.ttest %>% 
+filter(distractor.condition %in% c("Negative")))$min.volt, mu=0, alternative = "less")
+#neutral
+t.test((lag8.n2.ttest %>% 
+filter(distractor.condition %in% c("Neutral")))$min.volt, mu=0, alternative = "less")
+```
+**N2 ANOVA, Lag 2, Negatice, Neutral and Baseline**
+Two factor ANOVA (hemisphere: left, right x distractor type: neg, neutral, baseline), peak negativity of N2 of lag 2 elicited by target pictures
+
+```{r}
+#get electrodes we care about, 
+lag2.n2 <- eeg.data %>%
+  filter(electrode %in% c(64, 68, 69, 89, 94, 95)) %>%
+  mutate(hemisphere=if_else (electrode %in% c(89, 94, 95), "right", "left"))%>%
+  group_by(subject, lag.condition, hemisphere, t, distractor.condition) %>%
+  summarize(M.voltage = mean(voltage)) %>%
+  ungroup()
+
+#create lag8 only file
+lag2.n2.lag8 <- lag2.n2 %>%
+  filter(lag.condition == "Lag8") %>%
+  mutate(lag8.voltage = M.voltage) %>%
+  select(subject, t, hemisphere, lag8.voltage, distractor.condition)
+#create lag2 only file
+lag2.n2.lag2 <- lag2.n2 %>%
+  filter(lag.condition == "Lag2") %>%
+  mutate(lag2.voltage = M.voltage) %>%
+  select(subject, t, hemisphere, lag2.voltage, distractor.condition)
+
+#join and do difference
+lag2.n2.difference <- lag2.n2.lag2 %>%
+  inner_join(lag2.n2.lag8) %>%
+  mutate(difference.wave = lag2.voltage - lag8.voltage) %>%
+  select(subject, hemisphere, t, distractor.condition, difference.wave)
+
+#ggplot info
+lag2.n2.difference.summary <- lag2.n2.difference %>%
+  group_by(t, distractor.condition) %>%
+  summarize(M = mean(difference.wave), SE = sd(difference.wave) / sqrt(n()))
+
+ggplot(lag2.n2.difference.summary, aes(x=t, y=M, ymin=M-SE, ymax=M+SE))+
+  geom_ribbon(aes(fill=distractor.condition), alpha=0.3)+
+  geom_line(aes(color=distractor.condition), size=1)+
+  annotate("rect", fill="yellow", alpha=0.1, xmin=405, xmax = 585,ymin = -3, ymax=3) +
+  labs(x="Time (ms)", y = "Amplitude (µV)", color = "Distractor Type", "rect" = "Lag-2 Target N2")+
+  geom_vline(xintercept = 0) +
+  geom_vline(xintercept = 200) +
+  theme_bw()
+```
+**N2 ANOVA lag2**
+```{r}
+#anova
+# t >= 405 & t<=585
+lag2.n2.anova <- lag2.n2.difference %>%
+ filter(t >= 405 & t<=585) %>%
+  group_by(hemisphere, distractor.condition, subject) %>%
+  summarise(min.volt= min(difference.wave))
+
+
+ezANOVA(lag8.n2.anova, dv= min.volt, wid= subject, within = c(hemisphere, distractor.condition))
+
+```
+
+
+*Target P3b*
+Plot/ Visualization
+```{r}
+targetP3b <- eeg.data %>%
+  filter(electrode %in% c(54, 55, 79, 78, 61, 62)) %>%
+  group_by(subject, lag.condition, t, distractor.condition) %>%
+  summarize(M.voltage = mean(voltage)) %>%
+  ungroup()
+
+#create lag8 only file
+targetP3b.lag8 <- targetP3b %>%
+  filter(lag.condition == "Lag8") %>%
+  mutate(lag8.voltage = M.voltage) %>%
+  select(subject, t, lag8.voltage, distractor.condition)
+#create lag2 only file
+targetP3b.lag2 <- targetP3b %>%
+  filter(lag.condition == "Lag2") %>%
+  mutate(lag2.voltage = M.voltage) %>%
+  select(subject, t, lag2.voltage, distractor.condition)
+
+#join and do difference
+targetP3b.difference <- targetP3b.lag2 %>%
+  inner_join(targetP3b.lag8) %>%
+  mutate(difference.wave = lag2.voltage - lag8.voltage) %>%
+  select(subject, t, distractor.condition, difference.wave)
+
+#ggplot info
+targetP3b.difference.summary <- targetP3b.difference %>%
+  group_by(t, distractor.condition) %>%
+  summarize(M = mean(difference.wave), SE = sd(difference.wave) / sqrt(n()))
+
+ggplot(targetP3b.difference.summary, aes(x=t, y=M, ymin=M-SE, ymax=M+SE))+
+  geom_ribbon(aes(fill=distractor.condition), alpha=0.3)+
+  geom_line(aes(color=distractor.condition), size=1)+
+  annotate("rect", fill="yellow", alpha=0.1, xmin=635, xmax = 995,ymin = -3, ymax=3) +
+  labs(x="Time (ms)", y = "Amplitude (µV)", color = "Distractor Type")+
+  theme_bw()
+```
+**Target P3b ANOVA**
+A one-way repeated measures ANOVA (distractor type: negative, neutral, baseline: lag 2) on the average amplitude between 435 to 795 ms after the target onset at lag 2 will be conducted to determine the main effect of distractor types on the P3b component.
+```{r}
+#ANOVA
+# t >= 635-995ms
+targetP3b.anova <- targetP3b.difference %>%
+ filter(t >= 635 & t<=995) %>%
+  group_by(distractor.condition, subject) %>%
+  summarise(m.volt= mean(difference.wave))
+
+
+ezANOVA(targetP3b.anova, dv= m.volt, wid= subject, within = c( distractor.condition))
+
+```
+
+*Distractor P3b*
+Visualization
+```{r}
+p3b.distractor.data <- eeg.data %>%
+  filter(electrode %in% c(54,55,79,78,61,62)) %>%
+  filter(lag.condition == "Lag8") %>%
+  select(-lag.condition)
+p3b.distractor.baseline <- p3b.distractor.data %>%
+  filter(distractor.condition == "Baseline") %>%
+  mutate(baseline.voltage = voltage) %>%
+  select(-voltage, -distractor.condition)
+# need to merge in lag 2 baseline - lag 8 baseline
+p3b.distractor.baseline.difference <- eeg.data %>%
+  filter(electrode %in% c(54,55,79,78,61,62)) %>%
+  filter(distractor.condition == "Baseline") %>%
+  spread(lag.condition, voltage) %>%
+  mutate(difference.wave = Lag2 - Lag8) %>%
+  select(-Lag2, -Lag8)
+p3b.distractor.difference.waves <- p3b.distractor.data %>%
+  inner_join(p3b.distractor.baseline, by=c("subject", "t", "electrode")) %>%
+  filter(distractor.condition != "Baseline") %>%
+  mutate(difference.wave = voltage - baseline.voltage) %>%
+  select(-baseline.voltage, -voltage) %>%
+  rbind(p3b.distractor.baseline.difference) 
+
+#ggplot info
+distractorP3b.difference.summary <- p3b.distractor.difference.waves %>%
+  group_by(t, distractor.condition) %>%
+  summarize(M = mean(difference.wave), SE = sd(difference.wave) / sqrt(n()))
+
+ggplot(distractorP3b.difference.summary, aes(x=t, y=M, ymin=M-SE, ymax=M+SE))+
+  geom_ribbon(aes(fill=distractor.condition), alpha=0.3)+
+  geom_line(aes(color=distractor.condition), size=1)+
+  annotate("rect", fill="yellow", alpha=0.1, xmin=400, xmax = 550,ymin = -3, ymax=3) +
+  labs(x="Time (ms)", y = "Amplitude (µV)", color = "Distractor Type")+
+  theme_bw()
+```
+**ANOVA**
+A one-way repeated measures ANOVA (distractor type: negative, neutral, baseline: lag8) on the average amplitude between 400 to 550 ms after the distractor onset at lag 8 will be conducted to determine the main effect of distractor types on the P3b component. 
+```{r}
+#ANOVA
+#t= 400-550
+distractorP3b.anova <- p3b.distractor.difference.waves %>%
+ filter(t >= 400 & t<=550) %>%
+  group_by(distractor.condition, subject) %>%
+  summarise(m.volt= mean(difference.wave))
+
+
+ezANOVA(distractorP3b.anova, dv= m.volt, wid= subject, within = c(distractor.condition))
+
+```
+*Posterior Positivity*
+```{r}
+postpos <- eeg.data %>%
+  filter(electrode %in% c(96, 100, 101, 64, 68, 69)) %>%
+  mutate(hemisphere=if_else (electrode %in% c(96, 100, 101), "right", "left"))%>%
+  filter(lag.condition == "Lag8") %>%
+  group_by(subject, lag.condition, t, distractor.condition, hemisphere) %>%
+  summarize(M.voltage = mean(voltage)) %>%
+  ungroup()
+
+#create lag8 baseline only file
+postpos.baseline <- postpos %>%
+  filter(distractor.condition == "Baseline")%>%
+  mutate(b.voltage = M.voltage) %>%
+  select(subject, t, b.voltage, hemisphere)
+  
+#create lag8 neg/ neutral file
+postpos.nn <- postpos %>%
+  filter(lag.condition != "Baseline")%>%
+  mutate(nn.voltage = M.voltage) %>%
+  select(subject, t, nn.voltage, distractor.condition, hemisphere)
+
+#join and do difference
+postpos.difference <- postpos.nn %>%
+  inner_join(postpos.baseline) %>%
+  mutate(difference.wave = nn.voltage - b.voltage) %>%
+  select(subject, t, distractor.condition, difference.wave, hemisphere)
+
+#ggplot info
+postpos.summary <- postpos.difference %>%
+  group_by(t, distractor.condition) %>%
+  summarize(M = mean(difference.wave), SE = sd(difference.wave) / sqrt(n()))
+
+ggplot(postpos.summary, aes(x=t, y=M, ymin=M-SE, ymax=M+SE))+
+  geom_ribbon(aes(fill=distractor.condition), alpha=0.3)+
+  geom_line(aes(color=distractor.condition), size=1)+
+  annotate("rect", fill="yellow", alpha=0.1, xmin=405, xmax = 615,ymin = -3, ymax=3) +
+  labs(x="Time (ms)", y = "Amplitude (µV)", color = "Distractor Type")+
+  theme_bw()
+```
+**Posterior Positivity Anova**
+```{r}
+#posterior positivity ANOVA
+#t = 405-615ms
+postpos.anova <- postpos.difference %>%
+ filter(t >= 405 & t<=615) %>%
+  filter(distractor.condition != "Baseline") %>%
+  group_by(hemisphere, distractor.condition, subject) %>%
+  summarise(min.volt= mean(difference.wave))
+
+
+ezANOVA(postpos.anova, dv= min.volt, wid= subject, within = c(hemisphere, distractor.condition))
+
+
+```
+
+
+#Discussion
+#References

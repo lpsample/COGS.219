@@ -1,0 +1,33 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1556213301707.000,
+    "dirty" : false,
+    "encoding" : "",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "39B50031",
+    "lastKnownWriteTime" : 4294967300,
+    "last_content_update" : 1556213301707,
+    "path" : null,
+    "project_path" : null,
+    "properties" : {
+        "cacheKey" : "F4367E80",
+        "caption" : "bar.speed",
+        "contentUrl" : "grid_resource/gridviewer.html?env=&obj=bar.speed&cache_key=F4367E80",
+        "displayedObservations" : "9",
+        "environment" : "",
+        "expression" : "bar.speed",
+        "object" : "bar.speed",
+        "preview" : "0",
+        "totalObservations" : "9",
+        "variables" : "3"
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 12,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_dataframe"
+}

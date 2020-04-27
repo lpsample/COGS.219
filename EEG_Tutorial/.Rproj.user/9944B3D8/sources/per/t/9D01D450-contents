@@ -1,0 +1,103 @@
+---
+title: "EEG Language Study"
+output: html_notebook
+---
+```{r Packahe Declarations, message=FALSE, warning=FALSE}
+library(readr)
+library(dplyr)
+library(ggplot2)
+library(ez)
+
+```
+# Behavioral Data Analysis
+Begin by loading the **behavioral** data.
+```{r message=FALSE, warning=FALSE}
+behavioral.data<- read_csv('Data/behavioral_data_tidy.csv')
+```
+Adding a percent correct calculation, means and SD
+
+```{r}
+behavioral.data <- behavioral.data %>%
+  mutate(PercentCorrect =
+           CorrectResponses / 29*100)
+
+behavioral.data %>%
+  group_by(Condition) %>%
+summarize(M= mean(PercentCorrect), SD= sd(PercentCorrect))
+
+```
+
+Are people more accurate with anamalous sentences than literal sentences?
+
+```{r}
+t.test(PercentCorrect ~ Condition, data =behavioral.data %>% filter(Condition %in% c("Anomalous", "Literal")), paired = TRUE)
+```
+
+Are people better at literal than metaphorical?
+
+```{r}
+t.test(PercentCorrect ~ Condition, data =behavioral.data %>% filter(Condition %in% c("Literal", "Metaphorical")), paired = TRUE)
+```
+
+Visualize the behavioral data with a boxplot
+
+```{r}
+ggplot(behavioral.data, aes(x=Condition, y=PercentCorrect))+geom_violin() + geom_jitter()
+
+```
+# EEG Data
+Load in EEG Data
+
+```{r message=FALSE, warning=FALSE}
+eeg.data <- read_csv('Data/voltage_data_tidy.csv')
+```
+
+Calculate the Grand Averages
+
+```{r}
+grand.average.data <- eeg.data %>%
+  filter(electrode %in% c(11,62,129)) %>%
+  group_by(electrode, condition, t) %>%
+  summarise(voltage = mean(voltage))
+```
+Plot the grand averages
+```{r}
+ggplot(grand.average.data, aes(x=t, y=voltage, color=condition)) +
+  geom_line() +
+  facet_grid(electrode ~ .) +
+  geom_hline(yintercept = 0) +
+  geom_vline(xintercept = 0) +
+  annotate("rect", fill="yellow", alpha=0.1, xmin=300, xmax = 500,ymin = -1.5, ymax=4) +
+  labs(x="Time since stimulus onset (ms)", y = "Voltage (microvolts)")+
+  theme_bw()
+```
+
+Generating averages for statistical analysis
+```{r}
+eeg.stats.data <- eeg.data %>%
+  filter(electrode %in% c(11,62,129)) %>%
+  filter(t %in% c(300:500)) %>%
+  group_by(electrode, condition, subject) %>%
+  summarize (voltage = mean(voltage))
+
+eeg.stats.data$electrode <- factor(eeg.stats.data$electrode)
+```
+Plotted average data
+
+```{r}
+ggplot(eeg.stats.data, aes(x=electrode, y= voltage, color= condition))+
+  geom_boxplot()
+```
+Run a 3x3 ANOVA within subject
+
+```{r}
+anova.result <- ezANOVA(eeg.stats.data, dv = voltage, within=c(electrode, condition), wid=subject)
+anova.result$ANOVA
+```
+```{r}
+eeg.data %>% filter(electrode ==11) %>%
+  ggplot(aes(x=t,y=voltage,color=condition))+
+  scale_color_brewer(type="qual",palette="Set2")+
+  geom_line()+
+  facet_wrap(.~subject)
+```

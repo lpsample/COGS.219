@@ -1,0 +1,12 @@
+"0","#posterior positivity ANOVA"
+"0","#t = 405-615ms"
+"0","postpos.anova <- postpos.difference %>%"
+"0"," filter(t >= 405 & t<=615) %>%"
+"0","  filter(distractor.condition != ""Baseline"") %>%"
+"0","  group_by(hemisphere, distractor.condition, subject) %>%"
+"0","  summarise(min.volt= mean(difference.wave))"
+"0",""
+"0",""
+"0","ezANOVA(postpos.anova, dv= min.volt, wid= subject, within = c(hemisphere, distractor.condition))"
+"1","$ANOVA
+"

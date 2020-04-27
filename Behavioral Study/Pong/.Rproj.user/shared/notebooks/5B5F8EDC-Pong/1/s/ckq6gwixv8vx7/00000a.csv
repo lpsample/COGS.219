@@ -1,0 +1,6 @@
+"1","
+"
+"0","summary.score.speed<-score%>%"
+"0","  group_by(speed)%>%"
+"0","  summarize(agg.scores=mean(net.score))"
+"0","#people did worst at slowest speed, AI best at it ..."

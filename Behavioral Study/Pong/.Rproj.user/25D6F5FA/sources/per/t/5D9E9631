@@ -1,0 +1,33 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1556517551308.000,
+    "dirty" : false,
+    "encoding" : "",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "5D9E9631",
+    "lastKnownWriteTime" : 0,
+    "last_content_update" : 1556517551308,
+    "path" : null,
+    "project_path" : null,
+    "properties" : {
+        "cacheKey" : "DB3E74A2",
+        "caption" : "score",
+        "contentUrl" : "grid_resource/gridviewer.html?env=&obj=score&cache_key=DB3E74A2",
+        "displayedObservations" : 1307,
+        "environment" : "",
+        "expression" : "score",
+        "object" : "score",
+        "preview" : 0,
+        "totalObservations" : 1307,
+        "variables" : 7
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 8,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_dataframe"
+}

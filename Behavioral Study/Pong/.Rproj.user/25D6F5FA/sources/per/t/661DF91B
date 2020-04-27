@@ -1,0 +1,33 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1556517611660.000,
+    "dirty" : false,
+    "encoding" : "",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "661DF91B",
+    "lastKnownWriteTime" : 1556479757,
+    "last_content_update" : 1556517611660,
+    "path" : null,
+    "project_path" : null,
+    "properties" : {
+        "cacheKey" : "E6668A81",
+        "caption" : "bar.plot.speed",
+        "contentUrl" : "grid_resource/gridviewer.html?env=&obj=bar.plot.speed&cache_key=E6668A81",
+        "displayedObservations" : 9,
+        "environment" : "",
+        "expression" : "bar.plot.speed",
+        "object" : "bar.plot.speed",
+        "preview" : 0,
+        "totalObservations" : 9,
+        "variables" : 3
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 15,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_dataframe"
+}

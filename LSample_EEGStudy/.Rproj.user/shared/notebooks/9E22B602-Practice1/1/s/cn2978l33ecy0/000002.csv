@@ -1,0 +1,4 @@
+"0","```r
+ggplot(eeg.stats.data, aes(x=electrode, y= voltage, color= condition))+
+  geom_boxplot()
+```"

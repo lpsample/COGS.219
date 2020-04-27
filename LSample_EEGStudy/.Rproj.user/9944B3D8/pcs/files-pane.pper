@@ -1,0 +1,9 @@
+{
+    "path" : "~/Documents/VASSAR/Junior/COGS219/EEG Study/LSample_EEGStudy/data",
+    "sortOrder" : [
+        {
+            "ascending" : true,
+            "columnIndex" : 2
+        }
+    ]
+}

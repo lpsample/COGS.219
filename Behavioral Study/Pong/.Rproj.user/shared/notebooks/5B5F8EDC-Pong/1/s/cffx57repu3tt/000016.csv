@@ -1,0 +1,7 @@
+"0","  "
+"0",""
+"0","ggplot(bar.plot.dur %>% filter(humanPaddleSize == 1.2), aes(as.factor(button_pressed), average_proportion)) +   "
+"0","  geom_bar(aes(fill = button_pressed), position = ""dodge"", stat=""identity"")+ "
+"0","  scale_x_discrete(labels=c(""10s"", ""15s"", ""20s"")) + "
+"0","  labs(title = ""Duration Perception with Medium Paddle"",x=""Duration Guess"", y = ""Frequency"", color = ""Guess"")+"
+"0","  theme(legend.position = ""none"")"

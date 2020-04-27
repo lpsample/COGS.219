@@ -1,0 +1,3 @@
+"0","#import behavioral data"
+"0","behavioral.data<- read_csv('data/behavioral-data-tidy.csv', progress = FALSE) %>%"
+"0","filter(participant_id %in% good.subjects)"

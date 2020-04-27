@@ -1,0 +1,4 @@
+"0","#Importing EEG data"
+"0","eeg.data<- read_csv('data/eeg-data-tidy.csv', progress = FALSE)%>%"
+"0","  filter(subject %in% good.subjects)"
+"0",""

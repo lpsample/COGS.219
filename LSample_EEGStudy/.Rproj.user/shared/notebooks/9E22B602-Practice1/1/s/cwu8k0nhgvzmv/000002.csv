@@ -1,0 +1,4 @@
+"0","```r
+ggplot(behavioral.data, aes(x=Condition, y=PercentCorrect))+geom_violin() + geom_jitter()
+
+```"
